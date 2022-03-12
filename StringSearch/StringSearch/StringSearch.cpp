@@ -38,21 +38,21 @@ void someFunction( std::promise<WordList>&& promise, string searchString, WordLi
 WordList StringSearch::search(string searchString, WordList& wordList)
 {
     const int numberCpuCores = std::thread::hardware_concurrency();
+    static constexpr int threadNum = 4;
+    thread threads[threadNum];
+    WordList listParts[threadNum];
+    WordList resultLists[threadNum];
 
-    thread threads[4];
-    WordList listParts[4];
-    WordList resultLists[4];
+    std::promise<WordList> promises[threadNum];
+    std::future<WordList> futures[threadNum];
 
-    std::promise<WordList> promises[4];
-    std::future<WordList> futures[4];
-
-    size_t const partSize = wordList.size() / 4;
+    size_t const partSize = wordList.size() / threadNum;
     //cout << "WordList Begin : " << &wordList.front() << endl;
     //cout << "WordList End :   " << &wordList.back() << endl;
-    for (int index = 0; index < 4; index++)
+    for (int index = 0; index < threadNum; index++)
     {
         WordList listPart;
-        if (index != 3)
+        if (index != threadNum-1)
         {
 
             listPart = WordList( wordList.begin() + partSize * index, wordList.begin() + partSize * (index + 1) );
@@ -71,17 +71,17 @@ WordList StringSearch::search(string searchString, WordList& wordList)
 
     // Get results from threads and combine them
     WordList resultList;
-    for( int i = 0; i < 4; i++ )
+    for( int i = 0; i < threadNum; i++ )
     {
         resultLists[i] = futures[i].get();
         resultList.insert( resultList.end(), resultLists[i].begin(), resultLists[i].end() );
         threads[i].join();
     }
 
-    for (string word : resultList)
+    /*for (string word : resultList)
     {
         cout << word << endl;
-    }
+    }*/
  
 
      return resultList;
