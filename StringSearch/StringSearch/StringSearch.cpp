@@ -1,6 +1,7 @@
 #include <iostream>
 #include <thread>
 #include <future>
+#include <mutex>
 #include <windows.h>
 
 
@@ -14,28 +15,45 @@ StringSearch::StringSearch()
     
 }
 
-void StringSearch::executeSearch(string searchString, WordList& wordList, WordList& resultList)
-{
-
-}
-
-void someFunction( std::promise<WordList>&& promise, string searchString, WordList wordList )
+void StringSearch::executeSearch( std::promise<WordList>&& promise, string searchString, string* searchBeginPtr, size_t length)
 {
     WordList resultList;
-    
-
-    for( string word : wordList )
+    mutex mtx;
+    mtx.lock();
+    if (searchBeginPtr != nullptr)
     {
-        if( word.rfind( searchString, 0 ) == 0 ) // pos=0 limits the search to the prefix
+        for (int i = 0; i < length; i++)
         {
-            resultList.push_back( word );
+            if (searchBeginPtr[i].rfind(searchString, 0) == 0) // pos=0 limits the search to the prefix
+            {
+                resultList.push_back(searchBeginPtr[i]);
+            }
         }
-            
+        promise.set_value(resultList);
     }
-    promise.set_value(resultList);
+    mtx.unlock();
 }
 
-WordList StringSearch::search(string searchString, WordList& wordList)
+void someFunction( std::promise<WordList>&& promise, string searchString, string* searchBeginPtr, size_t length )
+{
+    WordList resultList;
+    mutex mtx;
+    mtx.lock();
+    if( searchBeginPtr != nullptr )
+    {
+        for( int i = 0; i < length; i++ )
+        {
+            if( searchBeginPtr[i].rfind(searchString, 0) == 0 ) // pos=0 limits the search to the prefix
+            {
+                resultList.push_back(searchBeginPtr[i]);
+            }
+        }
+        promise.set_value(resultList);
+    }
+    mtx.unlock();
+}
+
+WordList StringSearch::search( string searchString, WordList& wordList )
 {
     const int numberCpuCores = std::thread::hardware_concurrency();
     static constexpr int threadNum = 4;
@@ -46,26 +64,22 @@ WordList StringSearch::search(string searchString, WordList& wordList)
     std::promise<WordList> promises[threadNum];
     std::future<WordList> futures[threadNum];
 
-    size_t const partSize = wordList.size() / threadNum;
-    //cout << "WordList Begin : " << &wordList.front() << endl;
-    //cout << "WordList End :   " << &wordList.back() << endl;
+    size_t partSize = wordList.size() / threadNum;
+    size_t leftover = wordList.size() % threadNum;
+    cout << "WordList Begin : " << &wordList.front() << endl;
+    cout << "WordList End :   " << &wordList.back() << endl;
     for (int index = 0; index < threadNum; index++)
     {
-        WordList listPart;
-        if (index != threadNum-1)
-        {
-
-            listPart = WordList( wordList.begin() + partSize * index, wordList.begin() + partSize * (index + 1) );
-        }
-        else
-        {
-            listPart= WordList( wordList.begin() + partSize * index, wordList.end() );
-        }
-        //cout << "SubList Begin: "<< index << " " << &listPart.front() << endl;
-        //cout << "SubList End  : "<< index << " " << &listPart.back() << endl;
         futures[index] = promises[index].get_future();
+        
+        if (index == threadNum-1)
+        {
+            partSize += leftover;
+        }       
+        threads[index] = thread( &StringSearch::executeSearch, this, std::move( promises[index] ), searchString, wordList.data() + partSize * index, partSize );
+        cout << "PartList Begin : " << wordList.data() + partSize * index << endl;
+        cout << "PartList End :   " << wordList.data() +  (partSize * index) + partSize - 1 << endl;
 
-        threads[index] = thread( someFunction, std::move(promises[index]), searchString, listPart);
         //threads[index] = thread(executeSearch, searchString, listParts[index], resultLists[index]);
     }
 
