@@ -1,34 +1,33 @@
 #pragma once
 
 #include <iostream>
-
+#include <algorithm>
 #include "StringSearch.h"
 
 class TestClient
 {
 public:
     TestClient()
-    {
+    {   
+        wordList.reserve( pow( letters.length(), wordlength) ); // to avoid realocation of memory when generating the list 
         generateWordList();
-        //generateComplexWordList();
     }
+
     void runTest1();
     void runTest2();
     void runTest3();
-    void runTest4();  // Complex Search
+    void runTest4(); // Test with to long searchString
     void runTest5(); // Test with unused characters 
-    void runTest6(); // Test with to long searchString
+    
 private:
     StringSearch stringSearch;
+    WordList wordList;
+    std::string letters{ "ABCDEFGHIJKLMNOPQRSTUVWXYZ" };
+    static constexpr std::size_t wordlength{ 4 };
+
     void generateWordList();
-    //void generateComplexWordList();
     void printWordList( WordList& list );
 
     bool runTest( std::string testString, WordList& expecterResultList );
-    //bool runTest2(std::string testString, WordList& expectedResultList );
     bool compareWordLists( WordList& list1, WordList& list2 );
-    
-    WordList wordList;
-    //WordList complexList;
-
 };

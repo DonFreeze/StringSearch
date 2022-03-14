@@ -18,6 +18,7 @@ StringSearch/x64/
 *.vcxproj.filters
 *.vcxproj
 *.pdf
+*.odp
 *.sln
 
 # To ignore a set of files, wildcards can be used, as can be seen above.

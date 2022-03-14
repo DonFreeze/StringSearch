@@ -10,9 +10,7 @@ using WordList = std::vector<std::string>;
 class StringSearch
 {
 public:
-    StringSearch();
-    WordList search( std::string searchString, WordList& wordList );
+    void search( std::string searchString, WordList& wordList, WordList& resultList );
 private:
     void executeSearch( std::promise<WordList>&& promise, std::string searchString, std::string* searchBeginPtr, size_t length );
-    //void someFunction( std::promise<int>&& p );
 };
